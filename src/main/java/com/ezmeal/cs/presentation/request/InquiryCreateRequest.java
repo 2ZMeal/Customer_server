@@ -1,4 +1,4 @@
 package com.ezmeal.cs.presentation.request;
 
-public record CustomerServiceCreateRequest() {
+public record InquiryCreateRequest() {
 }
