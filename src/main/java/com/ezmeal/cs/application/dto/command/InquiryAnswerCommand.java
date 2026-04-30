@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record InquiryAnswerCommand(
         UUID csId,
-        String adminId,
+        String userId,
         Role role,
         String answer
 ) {
