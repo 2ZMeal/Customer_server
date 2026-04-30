@@ -104,7 +104,7 @@ public class Inquiry extends BaseEntity {
         this.contents = contents;
     }
 
-    // 3️관리자 답변 등록/수정 - 관리자만 answer 업데이트 및 상태 변경
+    // 관리자 답변 등록/수정 - 관리자만 answer 업데이트 및 상태 변경
     public void replyInquiry(Role role, String answer) {
         if (role != Role.ADMIN) {
             throw new ForbiddenException(InquiryErrorCode.INQUIRY_FORBIDDEN);

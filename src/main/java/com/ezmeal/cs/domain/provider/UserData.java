@@ -1,4 +1,6 @@
 package com.ezmeal.cs.domain.provider;
 
-public record UserData() {
+public record UserData(
+        String userName
+) {
 }
