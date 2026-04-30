@@ -1,4 +1,4 @@
 package com.ezmeal.cs.infrastructure.message.kafka.producer;
 
-public class CustomerServiceEventProducerImpl {
+public class InquiryEventProducerImpl {
 }
