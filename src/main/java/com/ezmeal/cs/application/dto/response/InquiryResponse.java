@@ -10,6 +10,7 @@ import java.util.UUID;
 public record InquiryResponse(
         UUID csId,
         String userId,
+        String userName,
         InquiryType inquiryType,
         ReferenceType referenceType,
         String referenceId,
@@ -24,6 +25,7 @@ public record InquiryResponse(
         return new InquiryResponse(
                 inquiry.getCsId(),
                 inquiry.getUserId(),
+                inquiry.getUserName(),
                 inquiry.getInquiryType(),
                 inquiry.getReferenceType(),
                 inquiry.getReferenceId(),

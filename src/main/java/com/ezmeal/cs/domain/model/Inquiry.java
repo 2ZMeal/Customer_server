@@ -36,6 +36,9 @@ public class Inquiry extends BaseEntity {
     @Column(name = "user_id", length = 36, updatable = false, nullable = false)
     private String userId;
 
+    @Column(name = "user_name", nullable = false)
+    private String userName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "inquiry_type", length = 30, updatable = false, nullable = false)
     private InquiryType inquiryType;
