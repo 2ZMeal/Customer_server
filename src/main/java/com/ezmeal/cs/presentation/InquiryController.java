@@ -2,6 +2,7 @@ package com.ezmeal.cs.presentation;
 
 import com.ezmeal.common.response.CommonApiResponse;
 import com.ezmeal.common.security.principal.CustomUserPrincipal;
+import com.ezmeal.cs.application.dto.command.InquiryDeleteCommand;
 import com.ezmeal.cs.application.dto.response.InquiryResponse;
 import com.ezmeal.cs.application.service.InquiryService;
 import com.ezmeal.cs.domain.repository.dto.InquirySearchConditionDto;
@@ -17,6 +18,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -86,6 +88,22 @@ public class InquiryController {
     ) {
         Page<InquiryResponse> response = inquiryService.searchInquiries(condition, pageable);
         return ResponseEntity.ok(CommonApiResponse.success(response));
+    }
+
+    // 문의글 삭제 (작성자 또는 관리자)
+    @DeleteMapping("/{csId}")
+    public ResponseEntity<CommonApiResponse<Void>> deleteInquiry(
+            @PathVariable("csId") UUID csId,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        InquiryDeleteCommand command = new InquiryDeleteCommand(
+                csId,
+                principal.getUserId(),
+                principal.getRole()
+        );
+        inquiryService.deleteInquiry(command);
+
+        return ResponseEntity.ok(CommonApiResponse.success(null));
     }
 
 }
