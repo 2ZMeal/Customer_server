@@ -90,13 +90,13 @@ public class InquiryEventListenerImpl {
         if ("SYSTEM".equals(userId)) {
             log.info("[Kafka] 시스템 요청으로 문의글({})을/를 삭제합니다.", message.csId());
             InquiryDeleteCommand systemCommand = message.toCommand("SYSTEM", Role.ADMIN);
-            // inquiryService.deleteInquiry(systemCommand);
+            inquiryService.deleteInquiry(systemCommand);
         } else {
             Role role = extractRoleHeader(roleBytes);
 
             log.info("[Kafka] 유저({})의 요청으로 문의글({})을/를 삭제합니다.", userId, message.csId());
             InquiryDeleteCommand command = message.toCommand(userId, role);
-            // inquiryService.deleteInquiry(command);
+            inquiryService.deleteInquiry(command);
         }
     }
 
@@ -131,7 +131,7 @@ public class InquiryEventListenerImpl {
     ) {
         String deletedBy = extractStringHeader(userIdBytes, "SYSTEM");
         log.info("[Kafka] ({})의 요청으로 유저의 모든 문의글 일괄 삭제를 수행합니다. 대상 유저: {}", deletedBy, message.userId());
-        // inquiryService.bulkSoftDeleteByUserId(message.userId(), deletedBy);
+        inquiryService.bulkSoftDeleteByUserId(message.userId(), deletedBy);
     }
 
     // ===================

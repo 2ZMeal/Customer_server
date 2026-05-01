@@ -6,11 +6,13 @@ import com.ezmeal.common.exception.types.ForbiddenException;
 import com.ezmeal.common.exception.types.NotFoundException;
 import com.ezmeal.cs.application.dto.command.InquiryAnswerCommand;
 import com.ezmeal.cs.application.dto.command.InquiryCreateCommand;
+import com.ezmeal.cs.application.dto.command.InquiryDeleteCommand;
 import com.ezmeal.cs.application.dto.command.InquiryUpdateCommand;
 import com.ezmeal.cs.application.dto.response.InquiryResponse;
 import com.ezmeal.cs.domain.event.InquiryEventProducer;
 import com.ezmeal.cs.domain.event.payload.publish.InquiryAnsweredEvent;
 import com.ezmeal.cs.domain.event.payload.publish.InquiryCreatedEvent;
+import com.ezmeal.cs.domain.event.payload.publish.InquiryDeletedEvent;
 import com.ezmeal.cs.domain.event.payload.publish.InquiryUpdatedEvent;
 import com.ezmeal.cs.domain.exception.InquiryErrorCode;
 import com.ezmeal.cs.domain.model.Inquiry;
@@ -159,6 +161,40 @@ public class InquiryService {
         Page<Inquiry> inquiryPage = inquiryRepository.searchActiveInquiries(condition, pageable);
         // 엔티티를 DTO로 변환하여 반환 (Page 인터페이스의 map 활용)
         return inquiryPage.map(InquiryResponse::from);
+    }
+
+    // 문의글 삭제 (작성자 또는 관리자)
+    public void deleteInquiry(InquiryDeleteCommand command) {
+        Inquiry deletedInquiry = transactionTemplate.execute(status -> {
+
+            // 관리자는 전체글 조회 가능, 일반 유저는 본인 글만 조회 (IDOR 고려)
+            Inquiry inquiry = command.role() == Role.ADMIN
+                    ? inquiryRepository.findActiveById(command.csId())
+                    .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND))
+                    : inquiryRepository.findActiveByIdAndUserId(command.csId(), command.userId())
+                            .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
+
+            inquiry.delete(command.userId());
+
+            return inquiry;
+        });
+
+        // 이벤트 발행
+        inquiryEventProducer.publishDeletedEvent(InquiryDeletedEvent.from(deletedInquiry));
+    }
+
+    // 유저 탈퇴 시 해당 유저의 문의 일괄 삭제 (Kafka 이벤트 수신용)
+    public void bulkSoftDeleteByUserId(String userId, String deletedBy) {
+
+        if (userId == null || userId.isBlank() || deletedBy == null || deletedBy.isBlank()) {
+            log.warn("일괄 삭제 처리 실패: 필수 입력값이 누락되었습니다. userId={}", userId);
+            throw new BadRequestException(InquiryErrorCode.INVALID_INPUT);
+        }
+
+        transactionTemplate.executeWithoutResult(status -> {
+            inquiryRepository.bulkSoftDeleteByUserId(userId, deletedBy);
+        });
+        log.info("유저({}) 탈퇴로 인해 작성한 모든 문의가 삭제 처리되었습니다. (deletedBy={})", userId, deletedBy);
     }
 
 }
