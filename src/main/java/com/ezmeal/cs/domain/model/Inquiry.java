@@ -137,7 +137,7 @@ public class Inquiry extends BaseEntity {
     }
 
     // 자신이 작성한 글이거나 관리자인지 검증
-    boolean checkRole(String userId, Role role) {
+    public boolean checkRole(String userId, Role role) {
         if (this.userId.equals(userId) || role == Role.ADMIN) {
             return true;
         } else {

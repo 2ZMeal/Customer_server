@@ -40,8 +40,7 @@ public class InquiryEventListenerImpl {
         if (!"SYSTEM".equals(userId)) {
             log.info("[Kafka] 유저({})의 요청으로 리뷰를 생성합니다. 문의 타입: {}", userId, message.inquiryType());
             InquiryCreateCommand command = message.toCommand(userId);
-            // TODO : InquiryService 구현
-            // inquiryService.createInquiry(command);
+            inquiryService.createInquiry(command);
         } else {
             log.warn("[Kafka] 문의글 생성은 유저 권한이 필수입니다. 시스템 생성을 지원하지 않습니다.");
         }
