@@ -1,6 +1,8 @@
 package com.ezmeal.cs.application.service;
 
+import com.ezmeal.common.enums.Role;
 import com.ezmeal.common.exception.types.BadRequestException;
+import com.ezmeal.common.exception.types.ForbiddenException;
 import com.ezmeal.common.exception.types.NotFoundException;
 import com.ezmeal.cs.application.dto.command.InquiryAnswerCommand;
 import com.ezmeal.cs.application.dto.command.InquiryCreateCommand;
@@ -93,10 +95,9 @@ public class InquiryService {
     // 문의글 수정 (문의 내용 수정)
     public InquiryResponse updateInquiry(InquiryUpdateCommand command) {
         Inquiry updatedInquiry = transactionTemplate.execute(status -> {
-            Inquiry inquiry = inquiryRepository.findActiveById(command.csId())
+            Inquiry inquiry = inquiryRepository.findActiveByIdAndUserId(command.csId(), command.userId())
                     .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
 
-            // userId가 일치하는지 updateInquiry 메서드 내에서 수행
             inquiry.updateInquiry(command.userId(), command.title(), command.contents());
             return inquiry;
         });
@@ -107,11 +108,14 @@ public class InquiryService {
 
     // 관리자 답변 등록/수정
     public InquiryResponse answerInquiry(InquiryAnswerCommand command) {
+        if (command.role() != Role.ADMIN) {
+            throw new ForbiddenException(InquiryErrorCode.INQUIRY_FORBIDDEN);
+        }
+
         Inquiry answeredInquiry = transactionTemplate.execute(status -> {
             Inquiry inquiry = inquiryRepository.findActiveById(command.csId())
                     .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
 
-            // 권한 검증 이후 답변 완료로 상태 변경 (Inquiry에 있는 replyInquiry 메서드 활용)
             inquiry.replyInquiry(command.role(), command.answer());
             return inquiry;
         });

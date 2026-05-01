@@ -16,6 +16,7 @@ public interface InquiryRepository {
     Inquiry save(Inquiry inquiry);
     Optional<Inquiry> findActiveById(UUID inquiryId);
     Page<Inquiry> searchActiveInquiries(InquirySearchConditionDto condition, Pageable pageable);
+    Optional<Inquiry> findActiveByIdAndUserId(UUID inquiryId, String userId);
 
     // 멱등성 처리 (중복 생성 방지)
     // 특정 기간(초) 이내에 동일한 조건으로 작성된 글이 있는지 확인
