@@ -1,5 +1,11 @@
 package com.ezmeal.cs.infrastructure.config;
 
+// Common 모듈의 예외 클래스들과 인터셉터 import
+import com.ezmeal.common.exception.types.BadRequestException;
+import com.ezmeal.common.exception.types.ConflictException;
+import com.ezmeal.common.exception.types.ForbiddenException;
+import com.ezmeal.common.exception.types.NotFoundException;
+import com.ezmeal.common.exception.types.UnauthorizedException;
 import com.ezmeal.common.security.interceptor.KafkaSecurityInterceptor;
 
 import org.springframework.context.annotation.Bean;
@@ -24,8 +30,19 @@ public class KafkaConfig {
 
     @Bean
     public DefaultErrorHandler errorHandler() {
-        // 3초 대기 후 최대 2번 더 재시도
-        return new DefaultErrorHandler(new FixedBackOff(3000L, 2));
+        // 3초 대기 후 최대 2번 더 재시도하는 기본 설정
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(new FixedBackOff(3000L, 2));
+
+        // 재시도해도 무조건 실패하는 비즈니스 예외 등록
+        errorHandler.addNotRetryableExceptions(
+                BadRequestException.class,
+                ConflictException.class,
+                ForbiddenException.class,
+                NotFoundException.class,
+                UnauthorizedException.class
+        );
+
+        return errorHandler;
     }
 
     // 빈 이름 충돌을 피하기 위해 customKafkaListenerContainerFactory 로 이름 변경
@@ -41,7 +58,7 @@ public class KafkaConfig {
 
         factory.setConsumerFactory(consumerFactory);
 
-        // JSON 변환 및 에러 핸들링
+        // JSON 변환 및 예외 필터링이 적용된 에러 핸들링 세팅
         factory.setRecordMessageConverter(jsonMessageConverter);
         factory.setCommonErrorHandler(errorHandler);
 
