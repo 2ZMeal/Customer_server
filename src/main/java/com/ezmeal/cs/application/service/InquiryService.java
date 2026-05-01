@@ -17,11 +17,16 @@ import com.ezmeal.cs.domain.model.Inquiry;
 import com.ezmeal.cs.domain.provider.UserData;
 import com.ezmeal.cs.domain.provider.UserProvider;
 import com.ezmeal.cs.domain.repository.InquiryRepository;
+import com.ezmeal.cs.domain.repository.dto.InquirySearchConditionDto;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
@@ -137,6 +142,23 @@ public class InquiryService {
             inquiryRepository.bulkUpdateUsernameByUserId(userId, newName);
         });
         log.info("유저({})의 모든 문의글 이름이 ( {} ) 로 일괄 변경되었습니다.", userId, newName);
+    }
+
+    // 단건 문의 상세 조회
+    @Transactional(readOnly = true)
+    public InquiryResponse getInquiry(UUID csId) {
+        Inquiry inquiry = inquiryRepository.findActiveById(csId)
+                .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
+        return InquiryResponse.from(inquiry);
+    }
+
+    // 다건 조건 검색 및 페이징 조회
+    @Transactional(readOnly = true)
+    public Page<InquiryResponse> searchInquiries(InquirySearchConditionDto condition, Pageable pageable) {
+        // QueryDSL 레포지토리를 통해 엔티티 Page 조회
+        Page<Inquiry> inquiryPage = inquiryRepository.searchActiveInquiries(condition, pageable);
+        // 엔티티를 DTO로 변환하여 반환 (Page 인터페이스의 map 활용)
+        return inquiryPage.map(InquiryResponse::from);
     }
 
 }
