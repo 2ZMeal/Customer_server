@@ -4,15 +4,21 @@ import com.ezmeal.common.response.CommonApiResponse;
 import com.ezmeal.common.security.principal.CustomUserPrincipal;
 import com.ezmeal.cs.application.dto.response.InquiryResponse;
 import com.ezmeal.cs.application.service.InquiryService;
+import com.ezmeal.cs.domain.repository.dto.InquirySearchConditionDto;
 import com.ezmeal.cs.presentation.request.InquiryAnswerRequest;
 import com.ezmeal.cs.presentation.request.InquiryCreateRequest;
 import com.ezmeal.cs.presentation.request.InquiryUpdateRequest;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,6 +66,25 @@ public class InquiryController {
         InquiryResponse response = inquiryService.answerInquiry(
                 request.toCommand(csId, principal.getUserId(), principal.getRole())
         );
+        return ResponseEntity.ok(CommonApiResponse.success(response));
+    }
+
+    // 단건 문의 상세 조회
+    @GetMapping("/{csId}")
+    public ResponseEntity<CommonApiResponse<InquiryResponse>> getInquiry(
+            @PathVariable("csId") UUID csId
+    ) {
+        InquiryResponse response = inquiryService.getInquiry(csId);
+        return ResponseEntity.ok(CommonApiResponse.success(response));
+    }
+
+    // 문의글 목록 조회 (필터링 및 페이징 포함)
+    @GetMapping
+    public ResponseEntity<CommonApiResponse<Page<InquiryResponse>>> searchInquiries(
+            @ModelAttribute InquirySearchConditionDto condition,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
+        Page<InquiryResponse> response = inquiryService.searchInquiries(condition, pageable);
         return ResponseEntity.ok(CommonApiResponse.success(response));
     }
 
