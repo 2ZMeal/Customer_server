@@ -87,7 +87,7 @@ public class InquiryEventListenerImpl {
             // 일반 유저인 경우에만 엄격한 Role 검사 수행
             Role role = extractRoleHeader(roleBytes);
 
-            log.info("[Kafka] 유저({})의 요청으로 리뷰({})를 삭제합니다.", userId, message.csId());
+            log.info("[Kafka] 유저({})의 요청으로 문의글({})을/를 삭제합니다.", userId, message.csId());
             InquiryDeleteCommand command = message.toCommand(userId, role);
             // TODO : InquiryService 구현
             // inquiryService.deleteReview(command);

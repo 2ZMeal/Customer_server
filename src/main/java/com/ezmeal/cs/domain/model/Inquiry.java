@@ -64,8 +64,9 @@ public class Inquiry extends BaseEntity {
     private AnswerStatus answerStatus;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private Inquiry(String userId, InquiryType inquiryType, ReferenceType referenceType, String referenceId, String title, String contents) {
+    private Inquiry(String userId, String userName, InquiryType inquiryType, ReferenceType referenceType, String referenceId, String title, String contents) {
         this.userId = userId;
+        this.userName = userName;
         this.inquiryType = inquiryType;
         this.referenceType = referenceType;
         this.referenceId = referenceId;
@@ -76,8 +77,9 @@ public class Inquiry extends BaseEntity {
     }
 
     // 생성
-    public static Inquiry create(String userId, InquiryType inquiryType, ReferenceType referenceType, String referenceId, String title, String contents) {
+    public static Inquiry create(String userId, String userName, InquiryType inquiryType, ReferenceType referenceType, String referenceId, String title, String contents) {
         validateRequiredString(userId, "userId");
+        validateRequiredString(userName, "userName");
         validateNotNull(inquiryType, "inquiryType");
         validateNotNull(referenceType, "referenceType");
         validateRequiredString(referenceId, "referenceId");
@@ -85,6 +87,7 @@ public class Inquiry extends BaseEntity {
 
         return Inquiry.builder()
                 .userId(userId)
+                .userName(userName)
                 .inquiryType(inquiryType)
                 .referenceType(referenceType)
                 .referenceId(referenceId)
