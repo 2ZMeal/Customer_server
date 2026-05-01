@@ -1,10 +1,15 @@
 package com.ezmeal.cs.application.service;
 
 import com.ezmeal.common.exception.types.BadRequestException;
+import com.ezmeal.common.exception.types.NotFoundException;
+import com.ezmeal.cs.application.dto.command.InquiryAnswerCommand;
 import com.ezmeal.cs.application.dto.command.InquiryCreateCommand;
+import com.ezmeal.cs.application.dto.command.InquiryUpdateCommand;
 import com.ezmeal.cs.application.dto.response.InquiryResponse;
 import com.ezmeal.cs.domain.event.InquiryEventProducer;
+import com.ezmeal.cs.domain.event.payload.publish.InquiryAnsweredEvent;
 import com.ezmeal.cs.domain.event.payload.publish.InquiryCreatedEvent;
+import com.ezmeal.cs.domain.event.payload.publish.InquiryUpdatedEvent;
 import com.ezmeal.cs.domain.exception.InquiryErrorCode;
 import com.ezmeal.cs.domain.model.Inquiry;
 import com.ezmeal.cs.domain.provider.UserData;
@@ -83,6 +88,45 @@ public class InquiryService {
         inquiryEventProducer.publishCreatedEvent(InquiryCreatedEvent.from(savedInquiry));
 
         return InquiryResponse.from(savedInquiry);
+    }
+
+    // 문의글 수정 (문의 내용 수정)
+    public InquiryResponse updateInquiry(InquiryUpdateCommand command) {
+        Inquiry updatedInquiry = transactionTemplate.execute(status -> {
+            Inquiry inquiry = inquiryRepository.findActiveById(command.csId())
+                    .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
+
+            // userId가 일치하는지 updateInquiry 메서드 내에서 수행
+            inquiry.updateInquiry(command.userId(), command.title(), command.contents());
+            return inquiry;
+        });
+
+        inquiryEventProducer.publishUpdatedEvent(InquiryUpdatedEvent.from(updatedInquiry));
+        return InquiryResponse.from(updatedInquiry);
+    }
+
+    // 관리자 답변 등록/수정
+    public InquiryResponse answerInquiry(InquiryAnswerCommand command) {
+        Inquiry answeredInquiry = transactionTemplate.execute(status -> {
+            Inquiry inquiry = inquiryRepository.findActiveById(command.csId())
+                    .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
+
+            // 권한 검증 이후 답변 완료로 상태 변경 (Inquiry에 있는 replyInquiry 메서드 활용)
+            inquiry.replyInquiry(command.role(), command.answer());
+            return inquiry;
+        });
+
+        // 이벤트 발행
+        inquiryEventProducer.publishAnsweredEvent(InquiryAnsweredEvent.from(answeredInquiry));
+        return InquiryResponse.from(answeredInquiry);
+    }
+
+    // 회원 이름 변경 시 일괄 변경 (Kafka 이벤트 수신용)
+    public void bulkUpdateNameByUserId(String userId, String newName) {
+        transactionTemplate.executeWithoutResult(status -> {
+            inquiryRepository.bulkUpdateUsernameByUserId(userId, newName);
+        });
+        log.info("유저({})의 모든 문의글 이름이 ( {} ) 로 일괄 변경되었습니다.", userId, newName);
     }
 
 }
