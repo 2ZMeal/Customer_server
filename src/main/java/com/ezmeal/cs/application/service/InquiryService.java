@@ -166,13 +166,13 @@ public class InquiryService {
     // 문의글 삭제 (작성자 또는 관리자)
     public void deleteInquiry(InquiryDeleteCommand command) {
         Inquiry deletedInquiry = transactionTemplate.execute(status -> {
-            Inquiry inquiry = inquiryRepository.findActiveById(command.csId())
-                    .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
 
-            // 권한 검증 (Inquiry에 있는 checkRole 메서드 활용)
-            if (!inquiry.checkRole(command.userId(), command.role())) {
-                throw new ForbiddenException(InquiryErrorCode.INQUIRY_FORBIDDEN);
-            }
+            // 관리자는 전체글 조회 가능, 일반 유저는 본인 글만 조회 (IDOR 고려)
+            Inquiry inquiry = command.role() == Role.ADMIN
+                    ? inquiryRepository.findActiveById(command.csId())
+                    .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND))
+                    : inquiryRepository.findActiveByIdAndUserId(command.csId(), command.userId())
+                            .orElseThrow(() -> new NotFoundException(InquiryErrorCode.INQUIRY_NOT_FOUND));
 
             inquiry.delete(command.userId());
 
