@@ -115,7 +115,7 @@ public class InquiryEventListenerImpl {
             @Header(value = "X-User-Id", required = false) byte[] userIdBytes
     ) {
         String deletedBy = extractStringHeader(userIdBytes, "SYSTEM");
-        log.info("[Kafka] ({})의 요청으로 유저의 모든 리뷰 일괄 삭제를 수행합니다. 대상 유저: {}", deletedBy, message.userId());
+        log.info("[Kafka] ({})의 요청으로 유저의 모든 문의글 일괄 삭제를 수행합니다. 대상 유저: {}", deletedBy, message.userId());
         // TODO : InquiryService 구현
         // inquiryService.bulkSoftDeleteByUserId(message.userId(), deletedBy);
     }
