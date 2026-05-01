@@ -17,6 +17,10 @@ public interface JpaInquiryRepository extends JpaRepository<Inquiry, UUID> {
     @Query("SELECT i FROM Inquiry i WHERE i.csId = :id AND i.deletedAt IS NULL")
     Optional<Inquiry> findActiveById(@Param("id") UUID id);
 
+    // 글 번호와 작성자 아이디가 모두 일치하는 글만 조회
+    @Query("SELECT i FROM Inquiry i WHERE i.csId = :id AND i.userId = :userId AND i.deletedAt IS NULL")
+    Optional<Inquiry> findActiveByIdAndUserId(@Param("id") UUID id, @Param("userId") String userId);
+
     // 멱등성(중복 생성 방지)을 위한 검증
     // 특정 시간(timeLimit) 이후 내에 (ex - 3초 이내) 동일한 유저가 동일한 타입과 레퍼런스로 작성한 글이 있는지 확인
     boolean existsByUserIdAndInquiryTypeAndReferenceTypeAndReferenceIdAndCreatedAtAfterAndDeletedAtIsNull(

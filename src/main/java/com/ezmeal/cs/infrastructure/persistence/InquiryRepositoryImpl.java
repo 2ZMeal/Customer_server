@@ -38,6 +38,12 @@ public class InquiryRepositoryImpl implements InquiryRepository {
         return jpaInquiryRepository.findActiveById(inquiryId);
     }
 
+    // csId와 userId로 동시 조회
+    @Override
+    public Optional<Inquiry> findActiveByIdAndUserId(UUID inquiryId, String userId) {
+        return jpaInquiryRepository.findActiveByIdAndUserId(inquiryId, userId);
+    }
+
     // 멱등성 검사 (네트워크 문제로 인한 따닥 방지용)
     @Override
     public boolean existsByUserIdAndInquiryTypeAndReferenceTypeAndReferenceIdAndCreatedAtAfterAndDeletedAtIsNull(
