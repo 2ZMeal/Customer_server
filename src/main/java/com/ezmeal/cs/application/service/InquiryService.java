@@ -127,6 +127,12 @@ public class InquiryService {
 
     // 회원 이름 변경 시 일괄 변경 (Kafka 이벤트 수신용)
     public void bulkUpdateNameByUserId(String userId, String newName) {
+
+        if (userId == null || userId.isBlank() || newName == null || newName.isBlank()) {
+            log.warn("일괄 이름 변경 실패: 잘못된 입력값입니다. userId={}", userId);
+            throw new BadRequestException(InquiryErrorCode.INVALID_INPUT);
+        }
+
         transactionTemplate.executeWithoutResult(status -> {
             inquiryRepository.bulkUpdateUsernameByUserId(userId, newName);
         });
