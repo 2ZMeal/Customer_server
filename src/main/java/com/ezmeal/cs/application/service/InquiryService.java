@@ -185,6 +185,12 @@ public class InquiryService {
 
     // 유저 탈퇴 시 해당 유저의 문의 일괄 삭제 (Kafka 이벤트 수신용)
     public void bulkSoftDeleteByUserId(String userId, String deletedBy) {
+
+        if (userId == null || userId.isBlank() || deletedBy == null || deletedBy.isBlank()) {
+            log.warn("일괄 삭제 처리 실패: 필수 입력값이 누락되었습니다. userId={}", userId);
+            throw new BadRequestException(InquiryErrorCode.INVALID_INPUT);
+        }
+
         transactionTemplate.executeWithoutResult(status -> {
             inquiryRepository.bulkSoftDeleteByUserId(userId, deletedBy);
         });
