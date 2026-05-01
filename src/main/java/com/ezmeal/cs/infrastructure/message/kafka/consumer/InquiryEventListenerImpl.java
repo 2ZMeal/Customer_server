@@ -70,7 +70,7 @@ public class InquiryEventListenerImpl {
 
             log.info("[Kafka] 유저({})의 요청으로 문의글({})을/를 수정합니다.", userId, message.csId());
             InquiryUpdateCommand command = message.toCommand(userId, role);
-            // inquiryService.updateInquiry(command);
+            inquiryService.updateInquiry(command);
         }
     }
 
@@ -116,7 +116,7 @@ public class InquiryEventListenerImpl {
     ) {
         String userId = extractStringHeader(userIdBytes, "SYSTEM");
         log.info("[Kafka] ({})의 요청으로 이름 일괄 변경을 수행합니다. 대상 유저: {}", userId, message.userId());
-        // inquiryService.bulkUpdateNameByUserId(message.userId(), message.userName());
+        inquiryService.bulkUpdateNameByUserId(message.userId(), message.userName());
     }
 
     // 유저 탈퇴(삭제) 이벤트 수신
