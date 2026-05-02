@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "p_cs", schema = "customer_db")
+@Table(name = "p_cs")
 public class Inquiry extends BaseEntity {
 
     @Id

@@ -37,7 +37,7 @@ public class InquiryEventListenerImpl {
     )
     public void handleInquiryCreate(
             @Payload InquiryCreatedMessage message,
-            @Header(value = "X-User-Id", required = false) byte [ ] userIdBytes
+            @Header(value = "X-User-Id", required = false) byte[] userIdBytes
     ) {
         String userId = extractStringHeader(userIdBytes, "SYSTEM");
 
@@ -58,8 +58,8 @@ public class InquiryEventListenerImpl {
     )
     public void handleInquiryUpdate(
             @Payload InquiryUpdatedMessage message,
-            @Header(value = "X-User-Id", required = false) byte [ ] userIdBytes,
-            @Header(value = "X-User-Role", required = false) byte [ ] roleBytes
+            @Header(value = "X-User-Id", required = false) byte[] userIdBytes,
+            @Header(value = "X-User-Roles", required = false) byte[] roleBytes
     ) {
         String userId = extractStringHeader(userIdBytes, "SYSTEM");
 
@@ -82,8 +82,8 @@ public class InquiryEventListenerImpl {
     )
     public void handleInquiryDelete(
             @Payload InquiryDeletedMessage message,
-            @Header(value = "X-User-Id", required = false) byte [ ] userIdBytes,
-            @Header(value = "X-User-Role", required = false) byte [ ] roleBytes
+            @Header(value = "X-User-Id", required = false) byte[] userIdBytes,
+            @Header(value = "X-User-Roles", required = false) byte[] roleBytes
     ) {
         String userId = extractStringHeader(userIdBytes, "SYSTEM");
 
@@ -112,7 +112,7 @@ public class InquiryEventListenerImpl {
     )
     public void consumeUserNameUpdatedEvent(
             @Payload UserNameUpdateMessage message,
-            @Header(value = "X-User-Id", required = false) byte [ ] userIdBytes
+            @Header(value = "X-User-Id", required = false) byte[] userIdBytes
     ) {
         String userId = extractStringHeader(userIdBytes, "SYSTEM");
         log.info("[Kafka] ({})의 요청으로 이름 일괄 변경을 수행합니다. 대상 유저: {}", userId, message.userId());
@@ -127,7 +127,7 @@ public class InquiryEventListenerImpl {
     )
     public void consumeUserDeletedEvent(
             @Payload UserDeletedMessage message,
-            @Header(value = "X-User-Id", required = false) byte [ ] userIdBytes
+            @Header(value = "X-User-Id", required = false) byte[] userIdBytes
     ) {
         String deletedBy = extractStringHeader(userIdBytes, "SYSTEM");
         log.info("[Kafka] ({})의 요청으로 유저의 모든 문의글 일괄 삭제를 수행합니다. 대상 유저: {}", deletedBy, message.userId());
@@ -139,7 +139,7 @@ public class InquiryEventListenerImpl {
     // ===================
 
     // 헤더에서 넘어온 바이트를 문자열로 변환
-    private String extractStringHeader(byte [ ] headerBytes, String defaultValue) {
+    private String extractStringHeader(byte[] headerBytes, String defaultValue) {
         if (headerBytes == null || headerBytes.length == 0) {
             return defaultValue;
         }
@@ -147,9 +147,9 @@ public class InquiryEventListenerImpl {
     }
 
     // 헤더 역할 검증
-    private Role extractRoleHeader(byte [ ] roleBytes) {
+    private Role extractRoleHeader(byte[] roleBytes) {
         if (roleBytes == null || roleBytes.length == 0) {
-            log.error("[Kafka] 필수 헤더인 X-User-Role이 누락되었습니다.");
+            log.error("[Kafka] 필수 헤더인 X-User-Roles이 누락되었습니다.");
             throw new IllegalArgumentException("필수 권한 헤더(X-User-Role)가 없습니다.");
         }
 
