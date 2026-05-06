@@ -106,8 +106,8 @@ public class InquiryEventListenerImpl {
 
     // 유저 이름 변경 이벤트 수신
     @KafkaListener(
-            topics = "${kafka.topic.user.name.updated:user-name-updated-topic}",
-            groupId = "${spring.kafka.consumer.group-id:inquiry-group}",
+            topics = "${kafka.topic.user.name.updated:user.updated}",
+            groupId = "${spring.kafka.consumer.group-id:customer-group}",
             containerFactory = "customKafkaListenerContainerFactory"
     )
     public void consumeUserNameUpdatedEvent(
@@ -121,8 +121,8 @@ public class InquiryEventListenerImpl {
 
     // 유저 탈퇴(삭제) 이벤트 수신
     @KafkaListener(
-            topics = "${kafka.topic.user.deleted:user-deleted-topic}",
-            groupId = "${spring.kafka.consumer.group-id:inquiry-group}",
+            topics = "${kafka.topic.user.deleted:user.deleted}",
+            groupId = "${spring.kafka.consumer.group-id:customer-group}",
             containerFactory = "customKafkaListenerContainerFactory"
     )
     public void consumeUserDeletedEvent(
