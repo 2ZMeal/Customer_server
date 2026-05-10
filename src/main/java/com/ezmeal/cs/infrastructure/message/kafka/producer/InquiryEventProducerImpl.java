@@ -18,16 +18,16 @@ public class InquiryEventProducerImpl implements InquiryEventProducer {
 
     private final CommonKafkaEventPublisher eventPublisher;
 
-    @Value("${kafka.topic.inquiry.created:inquiry-created-topic}")
+    @Value("${kafka.topic.inquiry.created:cs.created}")
     private String inquiryCreatedTopic;
 
-    @Value("${kafka.topic.inquiry.updated:inquiry-updated-topic}")
+    @Value("${kafka.topic.inquiry.updated:cs.updated}")
     private String inquiryUpdatedTopic;
 
-    @Value("${kafka.topic.inquiry.deleted:inquiry-deleted-topic}")
+    @Value("${kafka.topic.inquiry.deleted:cs.deleted}")
     private String inquiryDeletedTopic;
 
-    @Value("${kafka.topic.inquiry.answered:inquiry-answered-topic}")
+    @Value("${kafka.topic.inquiry.answered:cs.answered}")
     private String inquiryAnsweredTopic;
 
     @Override

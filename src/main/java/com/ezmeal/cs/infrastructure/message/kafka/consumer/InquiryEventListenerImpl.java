@@ -35,7 +35,7 @@ public class InquiryEventListenerImpl {
     // 일반 C, U, D 이벤트
     // ==================
 
-    @KafkaListener(topics = "inquiry-create-command-topic", groupId = "${spring.kafka.consumer.group-id:inquiry-group}")
+    @KafkaListener(topics = "inquiry.create.command", groupId = "${spring.kafka.consumer.group-id:customer-group}")
     public void handleInquiryCreate(EventEnvelope<InquiryCreatedEvent> envelope) {
         inboxProcessor.processOnce(envelope.eventId(), () -> {
             CustomUserPrincipal principal = getCurrentPrincipal();
@@ -58,7 +58,7 @@ public class InquiryEventListenerImpl {
         });
     }
 
-    @KafkaListener(topics = "inquiry-update-command-topic", groupId = "${spring.kafka.consumer.group-id:inquiry-group}")
+    @KafkaListener(topics = "inquiry.update.command", groupId = "${spring.kafka.consumer.group-id:customer-group}")
     public void handleInquiryUpdate(EventEnvelope<InquiryUpdatedEvent> envelope) {
         inboxProcessor.processOnce(envelope.eventId(), () -> {
             CustomUserPrincipal principal = getCurrentPrincipal();
@@ -80,7 +80,7 @@ public class InquiryEventListenerImpl {
         });
     }
 
-    @KafkaListener(topics = "inquiry-delete-command-topic", groupId = "${spring.kafka.consumer.group-id:inquiry-group}")
+    @KafkaListener(topics = "inquiry.delete.command", groupId = "${spring.kafka.consumer.group-id:customer-group}")
     public void handleInquiryDelete(EventEnvelope<InquiryDeletedEvent> envelope) {
         inboxProcessor.processOnce(envelope.eventId(), () -> {
             CustomUserPrincipal principal = getCurrentPrincipal();
