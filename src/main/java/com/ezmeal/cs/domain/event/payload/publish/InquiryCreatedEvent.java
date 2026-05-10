@@ -1,5 +1,6 @@
 package com.ezmeal.cs.domain.event.payload.publish;
 
+import com.ezmeal.common.message.DomainEvent;
 import com.ezmeal.cs.domain.enums.InquiryType;
 import com.ezmeal.cs.domain.enums.ReferenceType;
 import com.ezmeal.cs.domain.model.Inquiry;
@@ -14,7 +15,7 @@ public record InquiryCreatedEvent(
         String title,
         String contents,
         LocalDateTime occurredAt
-) {
+) implements DomainEvent {
     // Inquiry 객체를 이벤트 페이로드로 바꿔주는 팩토리 메서드
     public static InquiryCreatedEvent from(Inquiry inquiry) {
         return new InquiryCreatedEvent(

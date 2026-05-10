@@ -1,21 +1,26 @@
 package com.ezmeal.cs.infrastructure.message.kafka.consumer;
 
 import com.ezmeal.common.enums.Role;
+import com.ezmeal.common.message.EventEnvelope;
+import com.ezmeal.common.message.inbox.InboxProcessor;
+import com.ezmeal.common.security.principal.CustomUserPrincipal;
 import com.ezmeal.cs.application.dto.command.InquiryCreateCommand;
 import com.ezmeal.cs.application.dto.command.InquiryDeleteCommand;
 import com.ezmeal.cs.application.dto.command.InquiryUpdateCommand;
 import com.ezmeal.cs.application.service.InquiryService;
-import com.ezmeal.cs.infrastructure.message.kafka.consumer.dto.InquiryCreatedMessage;
-import com.ezmeal.cs.infrastructure.message.kafka.consumer.dto.InquiryDeletedMessage;
-import com.ezmeal.cs.infrastructure.message.kafka.consumer.dto.InquiryUpdatedMessage;
-import com.ezmeal.cs.infrastructure.message.kafka.consumer.dto.UserDeletedMessage;
-import com.ezmeal.cs.infrastructure.message.kafka.consumer.dto.UserNameUpdateMessage;
-import java.nio.charset.StandardCharsets;
+import com.ezmeal.cs.domain.event.payload.publish.InquiryCreatedEvent;
+import com.ezmeal.cs.domain.event.payload.publish.InquiryDeletedEvent;
+import com.ezmeal.cs.domain.event.payload.publish.InquiryUpdatedEvent;
+import com.ezmeal.cs.infrastructure.message.kafka.consumer.dto.UserDeletedEvent;
+import com.ezmeal.cs.infrastructure.message.kafka.consumer.dto.UserNameUpdatedEvent;
+
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -24,141 +29,122 @@ import org.springframework.stereotype.Component;
 public class InquiryEventListenerImpl {
 
     private final InquiryService inquiryService;
+    private final InboxProcessor inboxProcessor;
 
     // ==================
     // 일반 C, U, D 이벤트
     // ==================
 
-    // 문의글 생성 메시지 수신
-    @KafkaListener(
-            topics = "inquiry-create-command-topic",
-            groupId = "${spring.kafka.consumer.group-id:inquiry-group}",
-            containerFactory = "customKafkaListenerContainerFactory"
-    )
-    public void handleInquiryCreate(
-            @Payload InquiryCreatedMessage message,
-            @Header(value = "X-User-Id", required = false) byte[] userIdBytes
-    ) {
-        String userId = extractStringHeader(userIdBytes, "SYSTEM");
+    @KafkaListener(topics = "inquiry-create-command-topic", groupId = "${spring.kafka.consumer.group-id:inquiry-group}")
+    public void handleInquiryCreate(EventEnvelope<InquiryCreatedEvent> envelope) {
+        inboxProcessor.processOnce(envelope.eventId(), () -> {
+            CustomUserPrincipal principal = getCurrentPrincipal();
 
-        if (!"SYSTEM".equals(userId)) {
-            log.info("[Kafka] 유저({})의 요청으로 문의글을 생성합니다. 문의 타입: {}", userId, message.inquiryType());
-            InquiryCreateCommand command = message.toCommand(userId);
-            inquiryService.createInquiry(command);
-        } else {
-            log.warn("[Kafka] 문의글 생성은 유저 권한이 필수입니다. 시스템 생성을 지원하지 않습니다.");
-        }
+            if (!"SYSTEM".equals(principal.getUserId())) {
+                log.info("[Kafka] 유저({})의 요청으로 문의글을 생성합니다. 문의 타입: {}", principal.getUserId(), envelope.payload().inquiryType());
+
+                InquiryCreateCommand command = new InquiryCreateCommand(
+                        principal.getUserId(),
+                        envelope.payload().inquiryType(),
+                        envelope.payload().referenceType(),
+                        envelope.payload().referenceId(),
+                        envelope.payload().title(),
+                        envelope.payload().contents()
+                );
+                inquiryService.createInquiry(command);
+            } else {
+                log.warn("[Kafka] 문의글 생성은 유저 권한이 필수입니다. 시스템 생성을 지원하지 않습니다.");
+            }
+        });
     }
 
-    // 문의글 수정 메시지 수신
-    @KafkaListener(
-            topics = "inquiry-update-command-topic",
-            groupId = "${spring.kafka.consumer.group-id:inquiry-group}",
-            containerFactory = "customKafkaListenerContainerFactory"
-    )
-    public void handleInquiryUpdate(
-            @Payload InquiryUpdatedMessage message,
-            @Header(value = "X-User-Id", required = false) byte[] userIdBytes,
-            @Header(value = "X-User-Roles", required = false) byte[] roleBytes
-    ) {
-        String userId = extractStringHeader(userIdBytes, "SYSTEM");
+    @KafkaListener(topics = "inquiry-update-command-topic", groupId = "${spring.kafka.consumer.group-id:inquiry-group}")
+    public void handleInquiryUpdate(EventEnvelope<InquiryUpdatedEvent> envelope) {
+        inboxProcessor.processOnce(envelope.eventId(), () -> {
+            CustomUserPrincipal principal = getCurrentPrincipal();
 
-        if ("SYSTEM".equals(userId)) {
-            log.warn("[Kafka] 시스템에 의한 단건 문의글 수정은 지원하지 않습니다.");
-        } else {
-            Role role = extractRoleHeader(roleBytes);
+            if ("SYSTEM".equals(principal.getUserId())) {
+                log.warn("[Kafka] 시스템에 의한 단건 문의글 수정은 지원하지 않습니다.");
+            } else {
+                log.info("[Kafka] 유저({})의 요청으로 문의글({})을/를 수정합니다.", principal.getUserId(), envelope.payload().csId());
 
-            log.info("[Kafka] 유저({})의 요청으로 문의글({})을/를 수정합니다.", userId, message.csId());
-            InquiryUpdateCommand command = message.toCommand(userId, role);
-            inquiryService.updateInquiry(command);
-        }
+                InquiryUpdateCommand command = new InquiryUpdateCommand(
+                        UUID.fromString(envelope.payload().csId()),
+                        principal.getUserId(),
+                        principal.getRole(),
+                        envelope.payload().title(),
+                        envelope.payload().contents()
+                );
+                inquiryService.updateInquiry(command);
+            }
+        });
     }
 
-    // 문의글 삭제 메시지 수신
-    @KafkaListener(
-            topics = "inquiry-delete-command-topic",
-            groupId = "${spring.kafka.consumer.group-id:inquiry-group}",
-            containerFactory = "customKafkaListenerContainerFactory"
-    )
-    public void handleInquiryDelete(
-            @Payload InquiryDeletedMessage message,
-            @Header(value = "X-User-Id", required = false) byte[] userIdBytes,
-            @Header(value = "X-User-Roles", required = false) byte[] roleBytes
-    ) {
-        String userId = extractStringHeader(userIdBytes, "SYSTEM");
+    @KafkaListener(topics = "inquiry-delete-command-topic", groupId = "${spring.kafka.consumer.group-id:inquiry-group}")
+    public void handleInquiryDelete(EventEnvelope<InquiryDeletedEvent> envelope) {
+        inboxProcessor.processOnce(envelope.eventId(), () -> {
+            CustomUserPrincipal principal = getCurrentPrincipal();
 
-        if ("SYSTEM".equals(userId)) {
-            log.info("[Kafka] 시스템 요청으로 문의글({})을/를 삭제합니다.", message.csId());
-            InquiryDeleteCommand systemCommand = message.toCommand("SYSTEM", Role.ADMIN);
-            inquiryService.deleteInquiry(systemCommand);
-        } else {
-            Role role = extractRoleHeader(roleBytes);
-
-            log.info("[Kafka] 유저({})의 요청으로 문의글({})을/를 삭제합니다.", userId, message.csId());
-            InquiryDeleteCommand command = message.toCommand(userId, role);
-            inquiryService.deleteInquiry(command);
-        }
+            if ("SYSTEM".equals(principal.getUserId())) {
+                log.info("[Kafka] 시스템 요청으로 문의글({})을/를 삭제합니다.", envelope.payload().csId());
+                InquiryDeleteCommand systemCommand = new InquiryDeleteCommand(
+                        UUID.fromString(envelope.payload().csId()),
+                        "SYSTEM",
+                        Role.ADMIN
+                );
+                inquiryService.deleteInquiry(systemCommand);
+            } else {
+                log.info("[Kafka] 유저({})의 요청으로 문의글({})을/를 삭제합니다.", principal.getUserId(), envelope.payload().csId());
+                InquiryDeleteCommand command = new InquiryDeleteCommand(
+                        UUID.fromString(envelope.payload().csId()),
+                        principal.getUserId(),
+                        principal.getRole()
+                );
+                inquiryService.deleteInquiry(command);
+            }
+        });
     }
 
     // ==========================================
     // 일괄 처리 이벤트 (타 서버에서 발생한 이벤트 수신)
     // ==========================================
 
-    // 유저 이름 변경 이벤트 수신
-    @KafkaListener(
-            topics = "${kafka.topic.user.name.updated:user.updated}",
-            groupId = "${spring.kafka.consumer.group-id:customer-group}",
-            containerFactory = "customKafkaListenerContainerFactory"
-    )
-    public void consumeUserNameUpdatedEvent(
-            @Payload UserNameUpdateMessage message,
-            @Header(value = "X-User-Id", required = false) byte[] userIdBytes
-    ) {
-        String userId = extractStringHeader(userIdBytes, "SYSTEM");
-        log.info("[Kafka] ({})의 요청으로 이름 일괄 변경을 수행합니다. 대상 유저: {}", userId, message.userId());
-        inquiryService.bulkUpdateNameByUserId(message.userId(), message.userName());
+    @KafkaListener(topics = "${kafka.topic.user.name.updated:user.updated}", groupId = "${spring.kafka.consumer.group-id:customer-group}")
+    public void consumeUserNameUpdatedEvent(EventEnvelope<UserNameUpdatedEvent> envelope) {
+        inboxProcessor.processOnce(envelope.eventId(), () -> {
+            CustomUserPrincipal principal = getCurrentPrincipal();
+
+            log.info("[Kafka] ({})의 요청으로 이름 일괄 변경을 수행합니다. 대상 유저: {}", principal.getUserId(), envelope.payload().userId());
+            inquiryService.bulkUpdateNameByUserId(envelope.payload().userId(), envelope.payload().name());
+        });
     }
 
-    // 유저 탈퇴(삭제) 이벤트 수신
-    @KafkaListener(
-            topics = "${kafka.topic.user.deleted:user.deleted}",
-            groupId = "${spring.kafka.consumer.group-id:customer-group}",
-            containerFactory = "customKafkaListenerContainerFactory"
-    )
-    public void consumeUserDeletedEvent(
-            @Payload UserDeletedMessage message,
-            @Header(value = "X-User-Id", required = false) byte[] userIdBytes
-    ) {
-        String deletedBy = extractStringHeader(userIdBytes, "SYSTEM");
-        log.info("[Kafka] ({})의 요청으로 유저의 모든 문의글 일괄 삭제를 수행합니다. 대상 유저: {}", deletedBy, message.userId());
-        inquiryService.bulkSoftDeleteByUserId(message.userId(), deletedBy);
+    @KafkaListener(topics = "${kafka.topic.user.deleted:user.deleted}", groupId = "${spring.kafka.consumer.group-id:customer-group}")
+    public void consumeUserDeletedEvent(EventEnvelope<UserDeletedEvent> envelope) {
+        inboxProcessor.processOnce(envelope.eventId(), () -> {
+            CustomUserPrincipal principal = getCurrentPrincipal();
+
+            log.info("[Kafka] ({})의 요청으로 유저의 모든 문의글 일괄 삭제를 수행합니다. 대상 유저: {}", principal.getUserId(), envelope.payload().userId());
+            inquiryService.bulkSoftDeleteByUserId(envelope.payload().userId(), principal.getUserId());
+        });
     }
 
     // ===================
     // 내부 공통 유틸 메서드
     // ===================
 
-    // 헤더에서 넘어온 바이트를 문자열로 변환
-    private String extractStringHeader(byte[] headerBytes, String defaultValue) {
-        if (headerBytes == null || headerBytes.length == 0) {
-            return defaultValue;
-        }
-        return new String(headerBytes, StandardCharsets.UTF_8);
-    }
+    /**
+     * 공통 모듈의 KafkaSecurityInterceptor가 SecurityContext에 넣어둔 유저 정보를 꺼내옵니다.
+     * 정보가 없다면 시스템(SYSTEM)의 동작으로 간주합니다.
+     */
+    private CustomUserPrincipal getCurrentPrincipal() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-    // 헤더 역할 검증
-    private Role extractRoleHeader(byte[] roleBytes) {
-        if (roleBytes == null || roleBytes.length == 0) {
-            log.error("[Kafka] 필수 헤더인 X-User-Roles이 누락되었습니다.");
-            throw new IllegalArgumentException("필수 권한 헤더(X-User-Role)가 없습니다.");
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof CustomUserPrincipal principal) {
+            return principal;
         }
 
-        try {
-            String roleStr = new String(roleBytes, StandardCharsets.UTF_8);
-            return Role.valueOf(roleStr);
-        } catch (IllegalArgumentException e) {
-            log.error("[Kafka] 알 수 없는 Role 헤더 값입니다: {}", new String(roleBytes, StandardCharsets.UTF_8));
-            throw new IllegalArgumentException("유효하지 않은 권한 헤더 값입니다.");
-        }
+        // 헤더에 인증 정보가 없는 경우 SYSTEM 계정으로 간주
+        return new CustomUserPrincipal("SYSTEM", Role.ADMIN, "system@ezmeal.com");
     }
 }
